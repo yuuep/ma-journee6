@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma journée</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{--bordeaux:#340a12;--bordeaux-deep:#1f050a;--bordeaux-clair:#4a1420;--creme:#f1e8df;--creme-soft:rgba(241,232,223,.55);--creme-faible:rgba(241,232,223,.34);--ligne:rgba(241,232,223,.16);--rose:#d49aa2}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:transparent;height:100%;overflow:hidden}
+  body{font-family:'Cormorant Garamond',Georgia,serif;color:var(--creme);padding:2px}
+  button,textarea{font:inherit;color:inherit}
+  button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+  #cadre{transform-origin:top left}
+  .carte{position:relative;display:flex;flex-direction:column;background:var(--bordeaux);border:1.5px solid var(--bordeaux-deep);box-shadow:inset 0 0 0 5px var(--bordeaux),inset 0 0 0 6px var(--creme-soft);border-radius:16px;padding:11px 14px 9px;overflow:hidden}
+
+  /* En-tête : mascotte, bulle, niveau */
+  header{display:flex;align-items:center;gap:9px;padding:0 2px 6px;border-bottom:1px solid var(--ligne)}
+  .mascotte{flex:none;width:44px;height:44px;animation:flotte 2.6s ease-in-out infinite}
+  .mascotte svg{width:100%;height:100%;overflow:visible}
+  .oeil{transform-box:fill-box;transform-origin:center;animation:cligne 4.2s infinite}
+  .corps{transform-box:fill-box;transform-origin:50% 90%}
+  .saute .corps{animation:saute .5s ease}
+  .fete .mascotte{animation:danse .7s ease-in-out infinite}
+  .bulle{flex:1;min-width:0;position:relative;background:var(--creme);color:var(--bordeaux);border-radius:12px;padding:4px 10px;font-size:13.5px;line-height:1.12;font-style:italic;min-height:34px;display:flex;align-items:center}
+  .bulle::before{content:"";position:absolute;left:-6px;top:50%;margin-top:-5px;border:5px solid transparent;border-right-color:var(--creme);border-left:0}
+  .bulle span{display:block;animation:arrive .35s ease}
+  .niveau-bloc{flex:none;width:112px}
+  .niveau-haut{display:flex;align-items:baseline;justify-content:space-between;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+  .niveau-haut em{font-style:italic;font-weight:500;letter-spacing:0;text-transform:none;font-size:12.5px;color:var(--creme-soft)}
+  .xp{height:7px;border-radius:7px;background:var(--ligne);overflow:hidden;margin:3px 0 2px}
+  .xp i{display:block;height:100%;width:0;border-radius:7px;background:linear-gradient(90deg,var(--rose),var(--creme));transition:width .6s cubic-bezier(.3,1.3,.5,1)}
+  .niveau-bas{display:flex;justify-content:space-between;font-size:11.5px;font-style:italic;color:var(--creme-soft);white-space:nowrap}
+  .gain{position:absolute;right:20px;top:14px;font-size:15px;font-weight:600;color:var(--creme);pointer-events:none;animation:gain 1s ease-out forwards}
+
+  /* Écrans */
+  .ecran{flex:1;min-height:0;display:none;padding:7px 0 5px}
+  .ecran.actif{display:flex;flex-direction:column;animation:arrive .25s ease}
+
+  /* Jour : tuiles + eau + humeur */
+  .grille{flex:1;min-height:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-auto-rows:1fr;gap:5px}
+  .tuile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:54px;background:rgba(241,232,223,.05);border:1px solid var(--ligne);border-radius:12px;padding:3px 2px 4px;overflow:hidden;transition:background .25s,border-color .25s,transform .12s}
+  .tuile:active{transform:scale(.94)}
+  .tuile.fait{background:rgba(241,232,223,.16);border-color:var(--creme-soft)}
+  .tuile.pop{animation:pop .4s cubic-bezier(.3,1.6,.5,1)}
+  .icone{position:relative;z-index:1;font-size:19px;line-height:1.15;filter:none;transition:filter .3s}
+  .fait .icone,.encours .icone{filter:none}
+  .fait .icone{animation:gigote 2.4s ease-in-out infinite}
+  .nom{position:relative;z-index:1;font-size:9.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;line-height:1.1;white-space:nowrap}
+  .val{position:relative;z-index:1;font-size:12px;font-style:italic;color:var(--creme-soft);line-height:1.1;white-space:nowrap}
+  .fait .val{color:var(--creme)}
+  .defi{position:absolute;z-index:2;top:3px;right:4px;font-size:9px;font-weight:600;letter-spacing:.04em;background:var(--creme);color:var(--bordeaux);border-radius:6px;padding:0 4px;line-height:13px;animation:pulse 1.6s ease-in-out infinite}
+  .remplissage{position:absolute;left:0;right:0;bottom:0;height:0;background:rgba(212,154,162,.3);transition:height .5s cubic-bezier(.3,1.3,.5,1)}
+  .etincelle{position:absolute;left:50%;top:42%;width:5px;height:5px;border-radius:50%;background:var(--creme);pointer-events:none;animation:eclat .6s ease-out forwards}
+  .bande{flex:none;display:flex;align-items:center;gap:10px;margin-top:6px;padding:4px 8px;border:1px solid var(--ligne);border-radius:12px;background:rgba(241,232,223,.05)}
+  .bande .nom{flex:none}
+  .verres{flex:1;display:flex;align-items:flex-end;justify-content:space-between;gap:3px;min-width:0}
+  .verre{position:relative;flex:1;max-width:22px;height:22px;background:none;border:1.5px solid var(--creme-soft);border-top:0;border-radius:2px 2px 7px 7px;overflow:hidden;padding:0;transition:transform .12s}
+  .verre:active{transform:scale(.88)}
+  .verre i{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--rose);transition:height .45s cubic-bezier(.3,1.5,.5,1)}
+  .verre.plein{border-color:var(--creme)}
+  .verre.plein i{height:78%}
+  .humeur-puce{flex:none;display:flex;align-items:center;gap:5px;background:none;border:1px solid var(--creme-soft);border-radius:999px;padding:1px 10px 1px 7px;font-size:12.5px;font-style:italic;white-space:nowrap}
+  .humeur-puce b{font-size:15px;font-weight:500;font-style:normal}
+  .humeur-puce.fait{background:rgba(241,232,223,.16)}
+
+  /* Humeur : 9 ressentis */
+  .titre-ecran{flex:none;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;text-align:center;padding-bottom:5px}
+  .ressentis{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;border:1px solid var(--ligne);border-radius:12px;overflow:hidden}
+  .ressenti{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:none;border:0;border-right:1px solid var(--ligne);border-bottom:1px solid var(--ligne);min-height:44px;transition:background .2s}
+  .ressenti:nth-child(3n){border-right:0}
+  .ressenti:nth-child(n+7){border-bottom:0}
+  .ressenti span{font-size:21px;line-height:1.1;filter:none;transition:filter .2s,transform .3s}
+  .ressenti small{font-size:12.5px;font-style:italic;color:var(--creme-soft)}
+  .ressenti.choisi{background:rgba(241,232,223,.16)}
+  .ressenti.choisi span{filter:none;transform:scale(1.25);animation:gigote 2s ease-in-out infinite}
+  .ressenti.choisi small{color:var(--creme)}
+
+  /* Progrès */
+  .progres{flex:1;min-height:0;display:flex;gap:10px}
+  .anneau{flex:none;width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .anneau .rond{position:relative;width:80px;height:80px}
+  .anneau svg{width:100%;height:100%;transform:rotate(-90deg)}
+  .anneau .piste{fill:none;stroke:var(--ligne);stroke-width:9}
+  .anneau .arc{fill:none;stroke:var(--creme);stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .6s cubic-bezier(.3,1.3,.5,1)}
+  .anneau b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:600;font-variant-numeric:lining-nums}
+  .legende{font-size:10px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--creme-soft);text-align:center;white-space:nowrap}
+  .courbe{flex:1;min-width:0;display:flex;flex-direction:column;border:1px solid var(--ligne);border-radius:12px;padding:5px 8px 3px}
+  .courbe svg{flex:1;min-height:0;width:100%;overflow:visible}
+  .courbe .grille-l{stroke:var(--ligne);stroke-width:1}
+  .courbe .trait{fill:none;stroke:var(--creme);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+  .courbe .aire{fill:rgba(212,154,162,.22)}
+  .courbe-pied{display:flex;justify-content:space-between;font-size:10.5px;font-style:italic;color:var(--creme-soft)}
+  .stats{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+  .stat{font-size:13px;font-style:italic;white-space:nowrap}
+  .stat b{font-size:16px;font-weight:600;font-style:normal;font-variant-numeric:lining-nums}
+  .badges{display:flex;gap:5px}
+  .badge{width:27px;height:27px;border-radius:50%;border:1px solid var(--ligne);display:flex;align-items:center;justify-content:center;font-size:14px;filter:opacity(.55)}
+  .badge.gagne{filter:none;border-color:var(--creme);background:rgba(241,232,223,.16);animation:pulse 2.4s ease-in-out infinite}
+
+  /* Notes */
+  .notes{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1.1fr 1.1fr;gap:8px}
+  .bloc{display:flex;flex-direction:column;min-height:0;border:1px solid var(--ligne);border-radius:12px;padding:6px 9px;background:rgba(241,232,223,.05)}
+  .bloc h2{flex:none;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding-bottom:3px;margin-bottom:4px;border-bottom:1px solid var(--ligne);white-space:nowrap}
+  .citation{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:14.5px;font-style:italic;line-height:1.2}
+  .bloc textarea{flex:1;min-height:0;width:100%;resize:none;background:none;border:0;outline:none;font-size:14px;line-height:19px;background-image:linear-gradient(transparent 18px,var(--ligne) 18px);background-size:100% 19px;border-radius:0}
+  .bloc textarea::placeholder{color:var(--creme-faible);font-style:italic}
+
+  /* Menu du bas */
+  nav{flex:none;display:flex;gap:5px;padding-top:6px;border-top:1px solid var(--ligne)}
+  .onglet{flex:1;background:none;border:1px solid transparent;border-radius:999px;padding:1px 4px;font-size:12.5px;font-style:italic;color:var(--creme-soft);white-space:nowrap}
+  .onglet[aria-selected="true"]{background:var(--creme);color:var(--bordeaux);font-weight:600}
+  .confetti{position:absolute;top:-8px;width:6px;height:6px;border-radius:2px;pointer-events:none;animation:tombe 1.7s ease-in forwards}
+
+  @keyframes flotte{50%{transform:translateY(-3px)}}
+  @keyframes danse{25%{transform:translateY(-4px) rotate(-10deg)}75%{transform:translateY(-4px) rotate(10deg)}}
+  @keyframes saute{30%{transform:scale(1.12,.86)}60%{transform:scale(.92,1.12) translateY(-5px)}}
+  @keyframes cligne{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  @keyframes arrive{from{opacity:0;transform:translateY(4px)}}
+  @keyframes pop{40%{transform:scale(1.1)}}
+  @keyframes pulse{50%{transform:scale(1.08)}}
+  @keyframes gigote{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+  @keyframes eclat{to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+  @keyframes gain{from{opacity:0;transform:translateY(6px)}20%{opacity:1}to{opacity:0;transform:translateY(-22px)}}
+  @keyframes tombe{to{transform:translateY(380px) rotate(540deg);opacity:.2}}
+  button:focus-visible,textarea:focus-visible{outline:1.5px solid var(--creme);outline-offset:1px}
+  .ressenti.choisi span{animation-name:gigote}
+
+  /* Thème clair : fond blanc, dessin bordeaux (comme les tableaux sans fond) */
+  body.quad{display:grid;grid-template-columns:minmax(0,2.9fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:12px 20px;padding:8px;height:100%;overflow:hidden;background:#fff}
+  body.quad iframe{border:0;width:100%;height:100%;display:block}
+  .clair{--bordeaux:#ffffff;--bordeaux-deep:#340a12;--bordeaux-clair:#f3e9e6;--creme:#340a12;--creme-soft:rgba(52,10,18,.6);--creme-faible:rgba(52,10,18,.36);--ligne:rgba(52,10,18,.15)}
+  .clair .carte{border-width:1px}
+  .clair .tuile,.clair .bande,.clair .bloc{background:rgba(52,10,18,.03)}
+  .clair .tuile.fait,.clair .ressenti.choisi,.clair .badge.gagne,.clair .humeur-puce.fait{background:rgba(212,154,162,.28)}
+  .clair .courbe .aire{fill:rgba(212,154,162,.38)}
+  .clair .verre i{background:#d49aa2}
+  .clair .icone{filter:none}
+  .clair .ressenti span{filter:saturate(1.35)}
+  .clair .ressenti.choisi span{filter:saturate(1.5)}
+  .clair .fait .icone{filter:none}
+
+  /* Mode « un écran par cadre » : le menu disparaît, chaque cadre montre son écran */
+  .solo nav{display:none}
+  .solo:not(.m-jour) header{display:none}
+  .solo .ecran{padding-bottom:0}
+  .solo:not(.m-jour) .ecran{padding-top:1px}
+  .titre-solo{display:none}
+  .solo .titre-solo{display:block}
+
+  @media (max-width:430px){
+    .niveau-bloc{width:84px}
+    .ressenti span{font-size:18px}
+    .ressenti small{font-size:10.5px}
+    .titre-ecran{font-size:10px;letter-spacing:.1em}
+    .grille{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .bande{flex-wrap:wrap}
+    .progres{flex-direction:column}
+    .anneau{width:auto}
+    .notes{grid-template-columns:1fr}
+    .stats{flex-wrap:wrap}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+  <div id="cadre">
+    <div class="carte" id="carte">
+      <header>
+        <div class="mascotte" id="mascotte" aria-hidden="true">
+          <svg viewBox="0 0 48 48">
+            <g class="corps">
+              <path d="M24 6 C36 6 43 15 43 26 C43 37 35 44 24 44 C13 44 5 37 5 26 C5 15 12 6 24 6 Z" fill="#f1e8df"/>
+              <path id="noeud" d="M24 8 L15 3 L16 12 Z M24 8 L33 3 L32 12 Z" fill="#d49aa2" stroke="#340a12" stroke-width=".8" style="display:none"/>
+              <path id="couronne" d="M14 7 L16 -2 L20.5 4 L24 -4 L27.5 4 L32 -2 L34 7 Z" fill="#e8c887" stroke="#340a12" stroke-width=".8" style="display:none"/>
+              <ellipse class="oeil" cx="17" cy="24" rx="2.6" ry="3.4" fill="#340a12"/>
+              <ellipse class="oeil" cx="31" cy="24" rx="2.6" ry="3.4" fill="#340a12"/>
+              <ellipse cx="12" cy="31" rx="3.4" ry="2" fill="#d49aa2" opacity=".75"/>
+              <ellipse cx="36" cy="31" rx="3.4" ry="2" fill="#d49aa2" opacity=".75"/>
+              <path id="bouche" d="M19 33 Q24 37 29 33" fill="none" stroke="#340a12" stroke-width="2" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+        <div class="bulle" aria-live="polite"><span id="bulle"></span></div>
+        <div class="niveau-bloc">
+          <div class="niveau-haut"><span id="niv">Niveau 1</span><em id="serie"></em></div>
+          <div class="xp"><i id="xp"></i></div>
+          <div class="niveau-bas"><span id="titre"></span><span id="xptxt"></span></div>
+        </div>
+      </header>
+
+      <section class="ecran" id="e-jour">
+        <div class="grille" id="grille"></div>
+        <div class="bande">
+          <span class="nom">💧 Eau</span>
+          <div class="verres" id="verres"></div>
+          <button class="humeur-puce" id="puce" type="button"><b id="puce-ico">🫥</b><span id="puce-txt">Mon humeur ?</span></button>
+        </div>
+      </section>
+
+      <section class="ecran" id="e-humeur">
+        <div class="titre-ecran">Aujourd’hui, je me sens…</div>
+        <div class="ressentis" id="ressentis"></div>
+      </section>
+
+      <section class="ecran" id="e-progres">
+        <div class="titre-ecran titre-solo">Mes progrès</div>
+        <div class="progres">
+          <div class="anneau">
+            <div class="rond"><svg viewBox="0 0 80 80"><circle class="piste" cx="40" cy="40" r="33"/><circle class="arc" id="arc" cx="40" cy="40" r="33"/></svg><b id="pct">0 %</b></div>
+            <div class="legende">Aujourd’hui</div>
+          </div>
+          <div class="courbe">
+            <div class="legende" style="text-align:left">Mes 14 derniers jours</div>
+            <svg id="courbe" viewBox="0 0 280 70" preserveAspectRatio="none"></svg>
+            <div class="courbe-pied"><span id="c-debut"></span><span>aujourd’hui</span></div>
+          </div>
+        </div>
+        <div class="stats">
+          <span class="stat">🔥 <b id="s-serie">0</b> <span id="l-serie">jour d’affilée</span></span>
+          <span class="stat">⭐ <b id="s-parfait">0</b> <span id="l-parfait">journée parfaite</span></span>
+          <div class="badges" id="badges"></div>
+        </div>
+      </section>
+
+      <section class="ecran" id="e-notes">
+        <div class="titre-ecran titre-solo">Mon carnet</div>
+        <div class="notes">
+          <div class="bloc"><h2>✦ Rappel du jour</h2><p class="citation" id="citation"></p></div>
+          <div class="bloc"><h2>🌙 Pensée du soir</h2><textarea id="soir" maxlength="400" placeholder="Ce qui s’est bien passé, ce dont je suis fière…"></textarea></div>
+          <div class="bloc"><h2>✎ Notes libres</h2><textarea id="notes" maxlength="1200" placeholder="Idées, choses à ne pas oublier…"></textarea></div>
+        </div>
+      </section>
+
+      <nav role="tablist">
+        <button class="onglet" type="button" role="tab" data-e="jour">☀️ Ma journée</button>
+        <button class="onglet" type="button" role="tab" data-e="humeur">🫶 Humeur</button>
+        <button class="onglet" type="button" role="tab" data-e="progres">🏆 Progrès</button>
+        <button class="onglet" type="button" role="tab" data-e="notes">✎ Notes</button>
+      </nav>
+    </div>
+  </div>
+<script>
+(function(){
+  var CLE='ma-journee-v2';
+  var XP_CASE=10, XP_PARFAIT=30, XP_DEFI=10, XP_NIVEAU=150, SEUIL_SERIE=6;
+  var TITRES=['Débutante','Apprentie','Régulière','Déterminée','Disciplinée','Inarrêtable','Légende'];
+  var RESSENTIS=[
+    ['😊','heureuse','Heureuse. Garde-en un peu pour demain.'],['🍃','calme','Calme plat. Le luxe absolu.'],['⭐','motivée','Motivée ! Profites-en avant que ça passe.'],
+    ['🪫','fatiguée','Batterie faible. Mode économie d’énergie autorisé.'],['🧶','stressée','Un nœud à la fois. Respire.'],['😐','bof','Bof. Ça arrive aux meilleures.'],
+    ['💗','gratitude','De la gratitude. Très bon carburant.'],['🌀','anxieuse','Ça tourne là-haut. Pose une chose, puis une autre.'],['☀️','excitée','Excitée ! Qu’est-ce qui se prépare ?']
+  ];
+  var DOMAINES=[
+    {id:'sommeil',nom:'Sommeil',ico:'🌙',type:'compte',pas:[0,5,6,7,8,9],but:7,unite:' h',vide:'combien ?',
+      dit:function(v){return v===0?'Compteur de sommeil remis à zéro.':v<7?v+' h de sommeil ? Le café n’est pas un organe vital.':v===9?'9 h. La marmotte te salue avec respect.':'Bien dormi. Le monde peut continuer.';}},
+    {id:'cours',nom:'Cours',ico:'📚',type:'case',oui:'Le cerveau a fait ses pompes.'},
+    {id:'repas',nom:'Repas',ico:'🍽️',type:'compte',max:3,but:3,unite:'/3',vide:'0/3',
+      dit:function(v){return v===0?'Compteur de repas à zéro. Mange quelque chose.':v===1?'Un repas. Un café ne compte pas pour le deuxième.':v===2?'Deux repas. On tient le bon bout.':'Trois vrais repas. Qui es-tu ?';}},
+    {id:'sport',nom:'Sport',ico:'🏋️',type:'case',oui:'Tes muscles t’écrivent une lettre de remerciement.'},
+    {id:'bienetre',nom:'Bien-être',ico:'🕯️',type:'case',oui:'Masque, bougie, paix intérieure. Dans cet ordre.'},
+    {id:'lecture',nom:'Lecture',ico:'📖',type:'case',oui:'Quelques pages de plus que la moyenne nationale.'},
+    {id:'priere',nom:'Prière',ico:'🙏',type:'case',oui:'Un moment de calme, rien qu’à toi.'},
+    {id:'finance',nom:'Finances',ico:'💰',type:'case',oui:'Compte bancaire regardé en face. Du courage.'},
+    {id:'travail',nom:'Travail',ico:'💼',type:'case',oui:'Tâche abattue. Au suivant.'},
+    {id:'pro',nom:'Pro',ico:'🚀',type:'case',oui:'Un pas de plus vers ton empire.'},
+    {id:'eau',nom:'Eau',type:'eau',but:8},
+    {id:'humeur',nom:'Humeur',type:'humeur'}
+  ];
+  var TRICHE=['Ah, on décoche ? Je note.','Retour en arrière. Je n’ai rien vu.','Décoché. L’honnêteté t’honore.'];
+  var CITATIONS=['De petits pas chaque jour mènent loin.','Fais de ton mieux, reste douce avec toi-même.','Tu es capable de grandes choses.','Une journée de progrès vaut mieux que mille jours d’attente.','La constance crée les résultats.','La discipline, c’est choisir ce que tu veux le plus plutôt que ce que tu veux tout de suite.','Sois fière du chemin déjà parcouru.','Petites habitudes, grands changements.','Concentre-toi sur ce qui compte.','Aujourd’hui suffit. Fais-le bien.'];
+  var BADGES=[
+    ['🌱','Premier pas : une première case validée',function(s){return s.xp>0;}],
+    ['⭐','Journée parfaite : 12 sur 12',function(s){return s.parfaits>=1;}],
+    ['🔥','Série de 3 jours',function(s){return s.record>=3;}],
+    ['💧','Hydratée : 8 verres, 5 jours',function(s){return s.eau>=5;}],
+    ['🏆','Série de 7 jours',function(s){return s.record>=7;}],
+    ['👑','Niveau 5 atteint',function(s){return s.niveau>=5;}]
+  ];
+
+  // ?ecran=jour|humeur|progres|notes dans l'adresse : le cadre n'affiche que cet écran.
+  // Quatre cadres côte à côte montrent ainsi les quatre écrans en même temps, sur les mêmes données.
+  var ECRANS=['jour','humeur','progres','notes'], MODE=null;
+  try{MODE=new URLSearchParams(location.search).get('ecran');}catch(e){}
+  var NOM=/^mj-(\w+)$/.exec(window.name||'');
+  if(!MODE&&NOM){MODE=NOM[1];}
+  // Ouvert seul, sans paramètre : on montre les quatre tableaux en même temps, chacun dans son cadre.
+  if(!MODE){
+    var enLigne=/^https?:$/.test(location.protocol), source='<!DOCTYPE html>'+document.documentElement.outerHTML;
+    document.body.textContent='';
+    document.body.className='quad';
+    ECRANS.forEach(function(e){
+      var f=document.createElement('iframe');
+      f.name='mj-'+e;f.title=e;
+      if(enLigne){f.src=location.pathname+'?ecran='+e;}else{f.srcdoc=source;}
+      document.body.appendChild(f);
+    });
+    return;
+  }
+  if(ECRANS.indexOf(MODE)<0){MODE=null;}
+  if(MODE){document.body.classList.add('solo','m-'+MODE);}
+  // ?theme=clair ou ?theme=fonce force la couleur ; sinon « Humeur » et « Progrès » sont clairs
+  // quand ils sont affichés seuls, pour alterner avec les deux cadres bordeaux.
+  // ?haut=N décale la carte de N px vers le bas ; ?h=N fixe sa hauteur : pour l'aligner sur les widgets voisins.
+  var HAUT=0,HFIXE=0;
+  try{var q=new URLSearchParams(location.search);HAUT=Math.max(0,parseInt(q.get('haut'),10)||0);HFIXE=Math.max(0,parseInt(q.get('h'),10)||0);}catch(e){}
+  if(HAUT){document.body.style.paddingTop=(HAUT+2)+'px';}
+  var THEME=null;
+  try{THEME=new URLSearchParams(location.search).get('theme');}catch(e){}
+  if(THEME==='clair'||(THEME!=='fonce'&&(MODE==='humeur'||MODE==='progres'))){document.body.classList.add('clair');}
+
+  function cleJour(d){return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+  function jourMoins(n){var a=new Date();return new Date(a.getFullYear(),a.getMonth(),a.getDate()-n);}
+  var auj=new Date(), jourAuj=cleJour(auj);
+  // Le défi du jour : un domaine différent chaque jour, qui rapporte le double.
+  var graine=auj.getFullYear()*372+auj.getMonth()*31+auj.getDate();
+  var defi=DOMAINES[graine%DOMAINES.length].id;
+
+  var etat;
+  function relire(){
+    etat={jour:jourAuj,v:{},hist:{},notes:'',soir:'',ecran:'jour',msg:null};
+    try{
+      var d=JSON.parse(localStorage.getItem(CLE));
+      if(d&&d.hist){
+        etat.hist=d.hist;etat.notes=d.notes||'';etat.ecran=d.ecran||'jour';etat.msg=d.msg||null;
+        if(d.jour===jourAuj){etat.v=d.v||{};etat.soir=d.soir||'';}   // nouveau jour : cases et pensée du soir repartent à zéro
+      }
+    }catch(e){}
+  }
+  relire();
+  // Un autre cadre a changé quelque chose : on se remet à jour (sauf si on est en train d'écrire ici).
+  var attente=null;
+  window.addEventListener('storage',function(ev){
+    if(ev.key!==CLE)return;
+    // Les notes écrites ailleurs ne changent rien à l'affichage d'ici : inutile de recharger pour elles.
+    try{
+      var n=JSON.parse(ev.newValue)||{};
+      var ici=JSON.stringify([etat.v,etat.hist,etat.msg]), labas=JSON.stringify([n.jour===jourAuj?(n.v||{}):{},n.hist||{},n.msg||null]);
+      if(ici===labas&&MODE!=='notes')return;
+    }catch(e){}
+    clearTimeout(attente);
+    attente=setTimeout(function(){
+      var a=document.activeElement;
+      if(a&&a.tagName==='TEXTAREA')return;
+      location.reload();
+    },350);
+  });
+
+  function valeur(id){return etat.v[id]||0;}
+  function estFait(dom){
+    var v=valeur(dom.id);
+    return dom.type==='case'?v===1:dom.type==='humeur'?v>0:v>=dom.but;
+  }
+  function score(){var n=0;DOMAINES.forEach(function(x){if(estFait(x))n++;});return n;}
+  function defiFait(){var ok=false;DOMAINES.forEach(function(x){if(x.id===defi&&estFait(x))ok=true;});return ok;}
+  function sauver(){
+    etat.hist[jourAuj]={n:score(),d:defiFait()?1:0,e:valeur('eau')>=8?1:0};
+    // On n'écrit que s'il y a du nouveau, pour ne pas réveiller les autres cadres sans raison.
+    try{var txt=JSON.stringify(etat);if(localStorage.getItem(CLE)!==txt){localStorage.setItem(CLE,txt);}}catch(e){}
+  }
+
+  // Tout le jeu (points, niveau, série, badges) est recalculé à partir de l'historique :
+  // cocher puis décocher ne rapporte donc rien.
+  function bilan(){
+    var s={xp:0,parfaits:0,eau:0,serie:0,record:0};
+    Object.keys(etat.hist).forEach(function(k){
+      var h=etat.hist[k];
+      s.xp+=h.n*XP_CASE+(h.n===12?XP_PARFAIT:0)+(h.d?XP_DEFI:0);
+      if(h.n===12)s.parfaits++;
+      if(h.e)s.eau++;
+    });
+    function ok(n){var h=etat.hist[cleJour(jourMoins(n))];return !!h&&h.n>=SEUIL_SERIE;}
+    var i=ok(0)?0:1;
+    while(ok(i)){s.serie++;i++;}
+    var cours=0;
+    for(var j=120;j>=0;j--){if(ok(j)){cours++;if(cours>s.record)s.record=cours;}else{cours=0;}}
+    s.niveau=Math.floor(s.xp/XP_NIVEAU)+1;
+    s.reste=s.xp%XP_NIVEAU;
+    return s;
+  }
+
+  var carte=document.getElementById('carte'),masc=document.getElementById('mascotte'),bulle=document.getElementById('bulle');
+  function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+  function dire(txt){
+    if(MODE&&MODE!=='jour'){etat.msg={t:txt,ts:Date.now()};}   // la mascotte vit dans le cadre « Ma journée »
+    bulle.textContent=txt;
+    bulle.style.animation='none';void bulle.offsetWidth;bulle.style.animation='';
+    masc.classList.remove('saute');void masc.offsetWidth;masc.classList.add('saute');
+  }
+  function etincelles(b){
+    for(var i=0;i<7;i++){
+      var s=el('span','etincelle'),a=Math.PI*2*i/7;
+      s.style.setProperty('--dx',Math.round(Math.cos(a)*26)+'px');
+      s.style.setProperty('--dy',Math.round(Math.sin(a)*22)+'px');
+      b.appendChild(s);(function(s){setTimeout(function(){s.remove();},650);})(s);
+    }
+  }
+  function confettis(){
+    var c=['#f1e8df','#d49aa2','#e6c3c0','#e8c887'];
+    for(var i=0;i<28;i++){
+      var k=el('span','confetti');
+      k.style.left=(Math.random()*100)+'%';k.style.background=c[i%4];
+      k.style.animationDelay=(Math.random()*.5)+'s';
+      carte.appendChild(k);(function(k){setTimeout(function(){k.remove();},2400);})(k);
+    }
+  }
+  function gain(n){
+    var g=el('span','gain','+'+n+' XP');carte.appendChild(g);
+    setTimeout(function(){g.remove();},1050);
+  }
+
+  var avantB=bilan();
+  function maj(action){
+    sauver();
+    var s=bilan(),n=score();
+    // En-tête
+    document.getElementById('niv').textContent='Niveau '+s.niveau;
+    document.getElementById('titre').textContent=TITRES[Math.min(s.niveau,TITRES.length)-1];
+    document.getElementById('xp').style.width=Math.round(s.reste/XP_NIVEAU*100)+'%';
+    document.getElementById('xptxt').textContent=s.reste+'/'+XP_NIVEAU+' XP';
+    document.getElementById('serie').textContent=s.serie?'🔥 '+s.serie+' j':'';
+    document.getElementById('bouche').setAttribute('d',n===0?'M19 35 Q24 32 29 35':n<5?'M19 34 H29':n<12?'M19 33 Q24 37 29 33':'M18 32 Q24 41 30 32 Z');
+    document.getElementById('noeud').style.display=s.niveau>=2&&s.niveau<4?'':'none';
+    document.getElementById('couronne').style.display=s.niveau>=4?'':'none';
+    carte.classList.toggle('fete',n===12);
+    // Progrès
+    var tour=2*Math.PI*33,arc=document.getElementById('arc');
+    arc.style.strokeDasharray=tour;arc.style.strokeDashoffset=tour*(1-n/12);
+    document.getElementById('pct').textContent=Math.round(n/12*100)+' %';
+    document.getElementById('s-serie').textContent=s.serie;
+    document.getElementById('s-parfait').textContent=s.parfaits;
+    document.getElementById('l-serie').textContent=s.serie>1?'jours d’affilée':'jour d’affilée';
+    document.getElementById('l-parfait').textContent=s.parfaits>1?'journées parfaites':'journée parfaite';
+    var zone=document.getElementById('badges');zone.textContent='';
+    BADGES.forEach(function(b){
+      var x=el('span','badge'+(b[2](s)?' gagne':''),b[0]);x.title=b[1];x.setAttribute('aria-label',b[1]+(b[2](s)?' (gagné)':' (à gagner)'));zone.appendChild(x);
+    });
+    courbe();
+    // Récompenses, seulement après une action de la joueuse
+    if(action){
+      if(s.xp>avantB.xp){gain(s.xp-avantB.xp);}
+      if(s.niveau>avantB.niveau){confettis();dire('Niveau '+s.niveau+' ! Te voilà « '+TITRES[Math.min(s.niveau,TITRES.length)-1]+' ».');}
+      else if(n===12&&s.parfaits>avantB.parfaits){confettis();dire('12 sur 12 ! Qui es-tu, et qu’as-tu fait de la procrastination ?');}
+      else if(s.record>avantB.record&&s.record>=3){dire('🔥 '+s.record+' jours d’affilée. Ça devient une habitude.');}
+    }
+    avantB=s;
+  }
+
+  function courbe(){
+    var svg=document.getElementById('courbe'),pts=[],L=280,H=70;
+    for(var i=13;i>=0;i--){var h=etat.hist[cleJour(jourMoins(i))];pts.push(h?h.n/12:0);}
+    var d='',NS='http://www.w3.org/2000/svg';
+    pts.forEach(function(p,i){d+=(i?' L':'M')+(i*L/13).toFixed(1)+','+(H-4-p*(H-10)).toFixed(1);});
+    svg.textContent='';
+    [0,.5,1].forEach(function(g){var l=document.createElementNS(NS,'line');l.setAttribute('class','grille-l');l.setAttribute('x1',0);l.setAttribute('x2',L);l.setAttribute('y1',H-4-g*(H-10));l.setAttribute('y2',H-4-g*(H-10));svg.appendChild(l);});
+    var aire=document.createElementNS(NS,'path');aire.setAttribute('class','aire');aire.setAttribute('d',d+' L'+L+','+(H-4)+' L0,'+(H-4)+' Z');svg.appendChild(aire);
+    var tr=document.createElementNS(NS,'path');tr.setAttribute('class','trait');tr.setAttribute('d',d);svg.appendChild(tr);
+    var deb=jourMoins(13);document.getElementById('c-debut').textContent=deb.getDate()+'/'+(deb.getMonth()+1);
+  }
+
+  // ---- Écran « Ma journée » ----
+  var grille=document.getElementById('grille');
+  DOMAINES.forEach(function(dom){
+    if(dom.type==='eau'||dom.type==='humeur')return;
+    var b=el('button','tuile');b.type='button';b.setAttribute('aria-label',dom.nom);
+    var rem=el('span','remplissage');if(dom.type==='compte'){b.appendChild(rem);}
+    if(dom.id===defi){b.appendChild(el('span','defi','défi ×2'));}
+    var ico=el('span','icone',dom.ico),val=el('span','val');
+    b.appendChild(ico);b.appendChild(el('span','nom',dom.nom));b.appendChild(val);
+    function peindre(){
+      var v=valeur(dom.id),fait=estFait(dom);
+      b.classList.toggle('fait',fait);b.classList.toggle('encours',!fait&&v>0);
+      b.setAttribute('aria-pressed',String(fait));
+      if(dom.type==='case'){val.textContent=fait?'fait ✓':'à faire';}
+      else{val.textContent=v?v+dom.unite:dom.vide;rem.style.height=Math.round(Math.min(1,v/(dom.pas?dom.but+1:dom.max))*100)+'%';}
+    }
+    b.addEventListener('click',function(){
+      relire();
+      var avant=estFait(dom),v=valeur(dom.id),msg;
+      if(dom.type==='case'){v=v?0:1;msg=v?dom.oui:TRICHE[Math.floor(Math.random()*TRICHE.length)];}
+      else if(dom.pas){var i=dom.pas.indexOf(v);v=dom.pas[(i+1)%dom.pas.length];msg=dom.dit(v);}
+      else{v=v>=dom.max?0:v+1;msg=dom.dit(v);}
+      etat.v[dom.id]=v;peindre();
+      b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');
+      var gagne=!avant&&estFait(dom);
+      if(gagne){etincelles(b);if(dom.id===defi){msg='Défi du jour relevé ! Points doublés.';}}
+      dire(msg);maj(true);
+    });
+    grille.appendChild(b);peindre();
+  });
+
+  var verres=document.getElementById('verres'),listeVerres=[];
+  function peindreEau(){
+    var v=valeur('eau');
+    listeVerres.forEach(function(x,i){x.classList.toggle('plein',i<v);x.setAttribute('aria-pressed',String(i<v));});
+  }
+  for(var k=0;k<8;k++){(function(k){
+    var x=el('button','verre');x.type='button';x.setAttribute('aria-label','Verre '+(k+1));x.appendChild(el('i'));
+    x.addEventListener('click',function(){
+      relire();
+      var v=valeur('eau'),nv=(k+1===v)?k:k+1;      // retoucher le dernier verre plein le vide
+      etat.v.eau=nv;peindreEau();
+      dire(nv===0?'Plus un verre. Ton cactus boit plus que toi.':nv<4?'Glou. C’est un début, pas un exploit.':nv<8?'Glou glou. Tes reins applaudissent.':(defi==='eau'?'Défi du jour relevé ! Hydratée comme une reine.':'8 verres. Hydratée comme une reine.'));
+      if(nv===8&&v<8){etincelles(x);}
+      maj(true);
+    });
+    verres.appendChild(x);listeVerres.push(x);
+  })(k);}
+  if(defi==='eau'){document.querySelector('.bande .nom').textContent='💧 Eau · défi ×2';}
+
+  // ---- Écran « Humeur » ----
+  var zoneR=document.getElementById('ressentis'),boutonsR=[];
+  function peindreHumeur(){
+    var v=valeur('humeur');
+    boutonsR.forEach(function(b,i){b.classList.toggle('choisi',i+1===v);b.setAttribute('aria-pressed',String(i+1===v));});
+    document.getElementById('puce').classList.toggle('fait',v>0);
+    document.getElementById('puce-ico').textContent=v?RESSENTIS[v-1][0]:'🫥';
+    document.getElementById('puce-txt').textContent=v?RESSENTIS[v-1][1]:(defi==='humeur'?'Humeur · défi ×2':'Mon humeur ?');
+  }
+  RESSENTIS.forEach(function(r,i){
+    var b=el('button','ressenti');b.type='button';
+    b.appendChild(el('span',null,r[0]));b.appendChild(el('small',null,r[1]));
+    b.addEventListener('click',function(){
+      relire();
+      var v=valeur('humeur');
+      etat.v.humeur=(v===i+1)?0:i+1;
+      peindreHumeur();
+      var replique=etat.v.humeur?r[2]:'Humeur effacée. Mystérieuse.';
+      maj(true);dire(replique);sauver();
+    });
+    zoneR.appendChild(b);boutonsR.push(b);
+  });
+  document.getElementById('puce').addEventListener('click',function(){
+    if(MODE){dire('Ton humeur se choisit dans le cadre « Je me sens… », juste à côté.');}else{montrer('humeur');}
+  });
+
+  // ---- Écran « Notes » ----
+  document.getElementById('citation').textContent='« '+CITATIONS[graine%CITATIONS.length]+' »';
+  [['soir','soir'],['notes','notes']].forEach(function(p){
+    var c=document.getElementById(p[0]);c.value=etat[p[1]]||'';
+    c.addEventListener('input',function(){relire();etat[p[1]]=c.value;sauver();});
+  });
+
+  // ---- Menu ----
+  var onglets=document.querySelectorAll('.onglet');
+  function montrer(e){
+    if(!MODE){etat.ecran=e;}
+    onglets.forEach(function(o){
+      var actif=o.dataset.e===e;
+      o.setAttribute('aria-selected',String(actif));
+      document.getElementById('e-'+o.dataset.e).classList.toggle('actif',actif);
+    });
+    if(!MODE){try{localStorage.setItem(CLE,JSON.stringify(etat));}catch(x){}}
+  }
+  onglets.forEach(function(o){o.addEventListener('click',function(){montrer(o.dataset.e);});});
+
+  function accueil(){
+    var n=score(),h=auj.getHours(),nomDefi='';
+    DOMAINES.forEach(function(x){if(x.id===defi)nomDefi=x.nom;});
+    if(n===12)return '12 sur 12. Je n’ai plus rien à dire. Savoure.';
+    if(n===0)return 'Défi du jour : '+nomDefi+', points doublés. '+(h<12?'Les cases ne se cocheront pas toutes seules.':h<18?'L’après-midi est là, tes cases beaucoup moins.':'On sauve les meubles ?');
+    if(n<5)return 'C’est parti. Lentement, mais c’est parti.';
+    if(n<9)return 'Plus de la moitié. Tu commences à m’impressionner.';
+    return 'Presque tout. Ne lâche rien maintenant.';
+  }
+
+  // La carte remplit toujours tout le cadre ; elle ne se réduit que si le cadre est trop court.
+  var cadre=document.getElementById('cadre');
+  function ajuster(){
+    carte.style.height='auto';cadre.style.transform='none';cadre.style.width='auto';cadre.style.height='auto';
+    var dispo=Math.min(window.innerHeight-4-HAUT,HFIXE||1e9),e=Math.min(1,dispo/cadre.offsetHeight);
+    if(e<1){cadre.style.width=(100/e)+'%';cadre.style.transform='scale('+e+')';}
+    cadre.style.height=(dispo/e)+'px';
+    carte.style.height='100%';
+  }
+  window.addEventListener('resize',ajuster);
+  window.addEventListener('load',ajuster);
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(ajuster);}
+
+  peindreEau();peindreHumeur();
+  montrer(MODE||(ECRANS.indexOf(etat.ecran)>=0?etat.ecran:'jour'));
+  bulle.textContent=(etat.msg&&Date.now()-etat.msg.ts<5000)?etat.msg.t:accueil();
+  maj(false);ajuster();
+})();
+</script>
+</body>
+</html>
